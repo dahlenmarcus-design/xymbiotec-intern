@@ -1,0 +1,349 @@
+<!DOCTYPE html><html lang="sv"><head><meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>XYMBIOTEC - Intern Kontrollpanel</title><style>
+:root {
+    --bg: #0d1117; --surface: #161b22; --border: #30363d;
+    --text: #c9d1d9; --text-dim: #8b949e; --accent: #58a6ff;
+    --red: #ff4d4d; --green: #66bb6a; --yellow: #ffb74d;
+    --purple: #9b8cff; --cyan: #00bcd4;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body { background:var(--bg); color:var(--text); font-family:'Segoe UI',system-ui,sans-serif; padding:2rem; max-width:1200px; margin:0 auto; }
+h1 { text-align:center; font-size:1.8rem; letter-spacing:2px; }
+h1 span { color:var(--accent); }
+.subtitle { text-align:center; color:var(--text-dim); font-size:0.85rem; letter-spacing:3px; margin-bottom:1rem; }
+.updated { text-align:center; color:var(--text-dim); font-size:0.75rem; margin-bottom:2.5rem; }
+.section-title { color:var(--green); font-size:0.85rem; letter-spacing:3px; font-weight:600; margin:2rem 0 1rem; border-bottom:1px solid var(--border); padding-bottom:0.5rem; }
+.stats-bar { display:flex; justify-content:center; gap:3rem; margin:2rem 0; flex-wrap:wrap; }
+.stat { text-align:center; }
+.stat-num { font-size:2rem; font-weight:700; color:var(--accent); }
+.stat-num.red { color:var(--red); } .stat-num.green { color:var(--green); }
+.stat-num.yellow { color:var(--yellow); } .stat-num.purple { color:var(--purple); }
+.stat-label { font-size:0.7rem; color:var(--text-dim); letter-spacing:2px; text-transform:uppercase; }
+.dash-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(300px, 1fr)); gap:1rem; margin-bottom:1rem; }
+.dash-card { background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:1.2rem; border-left:3px solid var(--accent); }
+.dash-card.red { border-left-color:var(--red); } .dash-card.green { border-left-color:var(--green); }
+.dash-card.yellow { border-left-color:var(--yellow); } .dash-card.purple { border-left-color:var(--purple); }
+.dash-card h3 { font-size:0.95rem; margin-bottom:0.3rem; }
+.dash-card h3.red { color:var(--red); } .dash-card h3.green { color:var(--green); }
+.dash-card h3.yellow { color:var(--yellow); } .dash-card h3.purple { color:var(--purple); }
+.dash-card p { font-size:0.8rem; color:var(--text-dim); margin-bottom:0.5rem; }
+.badge { display:inline-block; font-size:0.7rem; padding:2px 8px; border-radius:10px; font-weight:600; }
+.badge-green { background:rgba(102,187,106,0.2); color:var(--green); }
+.badge-red { background:rgba(255,77,77,0.2); color:var(--red); }
+.badge-yellow { background:rgba(255,183,77,0.2); color:var(--yellow); }
+.badge-blue { background:rgba(88,166,255,0.2); color:var(--accent); }
+.badge-purple { background:rgba(155,140,255,0.2); color:var(--purple); }
+.sheets-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(280px, 1fr)); gap:0.5rem; }
+.sheet-card { display:flex; align-items:center; gap:0.8rem; background:var(--surface); border:1px solid var(--border); border-radius:6px; padding:0.7rem 1rem; text-decoration:none; color:var(--text); transition:border-color 0.2s; }
+.sheet-card:hover { border-color:var(--accent); }
+.sheet-dot { width:10px; height:10px; border-radius:50%; flex-shrink:0; }
+.sheet-name { font-size:0.85rem; flex:1; }
+.sheet-count { font-size:0.75rem; color:var(--text-dim); }
+.diarium-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(180px, 1fr)); gap:0.5rem; }
+.diarium-card { display:flex; align-items:center; gap:0.6rem; background:var(--surface); border:1px solid var(--border); border-radius:6px; padding:0.6rem 1rem; }
+.diarium-icon { font-size:1.2rem; }
+.diarium-name { font-size:0.85rem; flex:1; }
+.diarium-count { font-size:0.75rem; color:var(--text-dim); }
+.mail-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(180px, 1fr)); gap:1rem; margin:1rem 0; }
+.mail-stat { background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:1rem; text-align:center; }
+.mail-stat .num { font-size:1.6rem; font-weight:700; }
+.mail-stat .label { font-size:0.75rem; color:var(--text-dim); text-transform:uppercase; letter-spacing:1px; }
+.nav { text-align:center; margin-bottom:1rem; }
+.nav a { color:var(--accent); text-decoration:none; font-size:0.8rem; margin:0 1rem; }
+.nav a:hover { text-decoration:underline; }
+
+#login-wall { position:fixed;top:0;left:0;width:100%;height:100%;background:var(--bg);z-index:9999;display:flex;align-items:center;justify-content:center; }
+#login-wall form { background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:2rem;text-align:center; }
+#login-wall input { background:var(--bg);border:1px solid var(--border);color:var(--text);padding:0.6rem 1rem;border-radius:6px;font-size:1rem;margin:1rem 0;width:220px; }
+#login-wall button { background:var(--accent);color:#000;border:none;padding:0.6rem 2rem;border-radius:6px;font-size:1rem;cursor:pointer; }
+</style>
+<script>
+(function() {
+    var h = '29d0367482a26ef0acd0cb39abcc54c9e6eceffcb8a73cbbf77112a234c8afc1';
+    if (localStorage.getItem('xym_auth') === h) { return; }
+    document.addEventListener('DOMContentLoaded', function() {
+        var w = document.getElementById('login-wall');
+        if (!w) return;
+        w.style.display = 'flex';
+        document.getElementById('main-content').style.display = 'none';
+        document.getElementById('pw-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            var pw = document.getElementById('pw-input').value;
+            crypto.subtle.digest('SHA-256', new TextEncoder().encode(pw)).then(function(buf) {
+                var hex = Array.from(new Uint8Array(buf)).map(function(b) { return b.toString(16).padStart(2,'0'); }).join('');
+                if (hex === h) {
+                    localStorage.setItem('xym_auth', h);
+                    w.style.display = 'none';
+                    document.getElementById('main-content').style.display = 'block';
+                } else {
+                    document.getElementById('pw-error').textContent = 'Fel losenord';
+                }
+            });
+        });
+    });
+})();
+</script>
+</head><body>
+<div id="login-wall">
+<form id="pw-form"><h2 style="color:var(--accent);margin-bottom:0.5rem">Intern Dashboard</h2>
+<p style="color:var(--text-dim);font-size:0.85rem">Losenordsskyddad</p>
+<input type="password" id="pw-input" placeholder="Losenord" autofocus>
+<p id="pw-error" style="color:var(--red);font-size:0.8rem;min-height:1.2rem"></p>
+<button type="submit">Logga in</button></form></div>
+<div id="main-content">
+<h1>XYMBIOTEC &mdash; <span>Intern Kontrollpanel</span></h1>
+<div class="subtitle">SLAM &nbsp;|&nbsp; PERCEPTION &nbsp;|&nbsp; AUTONOMI &nbsp;|&nbsp; LAPLACIAN PLATFORM</div>
+<div class="updated">Uppdaterad: 2026-04-07 09:31 &mdash; INTERN (ej for kollegor)</div>
+<div class="nav"><a href="dashboard.html">Publik dashboard</a></div>
+
+<div class="stats-bar">
+    <div class="stat"><div class="stat-num">1382</div><div class="stat-label">Relevanta mail</div></div>
+    <div class="stat"><div class="stat-num red">1199</div><div class="stat-label">Obesvarade</div></div>
+    <div class="stat"><div class="stat-num green">180</div><div class="stat-label">Skickade</div></div>
+    <div class="stat"><div class="stat-num yellow">0</div><div class="stat-label">Aktiva utlysningar</div></div>
+    <div class="stat"><div class="stat-num purple">0</div><div class="stat-label">Uppdrag</div></div>
+    <div class="stat"><div class="stat-num">11</div><div class="stat-label">Sheets</div></div>
+</div>
+
+<div class="section-title">JURIDIK &amp; RATTSARBETE</div>
+<div class="dash-grid">
+    <div class="dash-card red">
+        <h3 class="red">Resning B4111-22</h3>
+        <p>HD O 9031-25. Resningsansokan, bevisning, tjanstefel.</p>
+        <div style="display:flex;gap:0.5rem;margin-top:0.5rem;flex-wrap:wrap">
+            <a href="https://docs.google.com/spreadsheets/d/14JY-LYIUIDAcfM-UShshk5CJUgLTsN15ZkTyXsV14eg" target="_blank" class="badge badge-red" style="text-decoration:none">&#128202; Case Manager</a>
+        </div>
+    </div>
+    <div class="dash-card red">
+        <h3 class="red">Kriminalvarden &rarr; Domstol</h3>
+        <p>Mal 1404-26, overklaganden, insyn, tjanstefel KV.</p>
+        <div style="display:flex;gap:0.5rem;margin-top:0.5rem;flex-wrap:wrap">
+            <span class="badge badge-red">0 arenden</span>
+        </div>
+    </div>
+    <div class="dash-card red">
+        <h3 class="red">ECHR &amp; EU-rapport</h3>
+        <p>EU-kommissionen, Europadomstolen, JO, JK.</p>
+        <span class="badge badge-yellow">Pagaende</span>
+    </div>
+</div>
+
+<div class="section-title">E-POST</div>
+<div class="mail-grid">
+    <div class="mail-stat"><div class="num" style="color:var(--accent)">1382</div><div class="label">Totalt</div></div>
+    <div class="mail-stat"><div class="num" style="color:var(--green)">1382</div><div class="label">Relevanta</div></div>
+    <div class="mail-stat"><div class="num" style="color:var(--red)">1199</div><div class="label">Obesvarade</div></div>
+    <div class="mail-stat"><div class="num" style="color:var(--green)">180</div><div class="label">Skickade</div></div>
+    <div class="mail-stat"><div class="num" style="color:var(--text-dim)">0</div><div class="label">Spam</div></div>
+</div>
+
+<div class="section-title">UPPDRAG — SLAM/PERCEPTION TARGETS</div>
+<div class="dash-grid">
+    <div class="dash-card" style="border-left-color:var(--cyan)">
+        <h3 style="color:var(--cyan)">Volvo CE</h3>
+        <p>Autonoma grävmaskiner. SLAM i grus/jord/damm. Störst budget.</p>
+        <span class="badge badge-green">Match 95%</span> <span class="badge badge-blue">Prioritet 1</span>
+    </div>
+    <div class="dash-card" style="border-left-color:var(--cyan)">
+        <h3 style="color:var(--cyan)">Einride</h3>
+        <p>Autonoma lastbilar. Perception stack, sensorfusion.</p>
+        <span class="badge badge-green">Match 90%</span> <span class="badge badge-blue">Prioritet 1</span>
+    </div>
+    <div class="dash-card" style="border-left-color:var(--cyan)">
+        <h3 style="color:var(--cyan)">Epiroc</h3>
+        <p>Autonom gruvdrift. GPS-denied SLAM under jord.</p>
+        <span class="badge badge-green">Match 85%</span> <span class="badge badge-blue">Prioritet 1</span>
+    </div>
+</div>
+<div class="dash-grid">
+    <div class="dash-card red">
+        <h3 class="red">Saab Dynamics</h3>
+        <p>SLAM for loitering munitions. 2.6 mdr C-UAS-kontrakt.</p>
+        <span class="badge badge-red">Forsvar</span> <span class="badge badge-green">Match 88%</span>
+    </div>
+    <div class="dash-card red">
+        <h3 class="red">Saab Kockums</h3>
+        <p>Undervattens-SLAM, AUV-navigation, sensorfusion.</p>
+        <span class="badge badge-red">Forsvar</span> <span class="badge badge-green">Match 88%</span>
+    </div>
+    <div class="dash-card">
+        <h3>Kollmorgen NDC</h3>
+        <p>SLAM + sensorfusion for AGV/lagerrobotar. Goteborg.</p>
+        <span class="badge badge-green">Match 95%</span>
+    </div>
+</div>
+
+<div class="section-title">UTLYSNINGAR — AKTUELLA</div>
+<div class="dash-grid">
+    <div class="dash-card green">
+        <h3 class="green">Vinnova Tillampad AI</h3>
+        <p>290 MSEK program. Autonoma system explicit. Ny chans efter ORCHESTRA.</p>
+        <span class="badge badge-red">Deadline 24 apr</span>
+    </div>
+    <div class="dash-card red">
+        <h3 class="red">EDF Drone Swarm AI</h3>
+        <p>EUR 30M. SLAM/perception for dronsvärmar. Konsortium 3+ lander.</p>
+        <span class="badge badge-yellow">Deadline 29 sep</span>
+    </div>
+    <div class="dash-card purple">
+        <h3 class="purple">EDIP — EU Forsvar</h3>
+        <p>EUR 232M for obemannade system + AI/autonomi. Just oppnad.</p>
+        <span class="badge badge-yellow">Lopande 2026-27</span>
+    </div>
+</div>
+<div class="dash-grid">
+    <div class="dash-card">
+        <h3>ESA NAVISP Dronlokalisering</h3>
+        <p>Akustik + navigation for dronare. Lag troskel for SME.</p>
+        <span class="badge badge-yellow">April 2026</span>
+    </div>
+    <div class="dash-card">
+        <h3>FMV — Saab underleverantor</h3>
+        <p>4 mdr SEK obemannade system. Inga oppna upphandlingar — subcontracting.</p>
+        <span class="badge badge-blue">Bevaka</span>
+    </div>
+    <div class="dash-card">
+        <h3>Trafikverket UNICA</h3>
+        <p>Autonom inspektion av infrastruktur med dronare. R&amp;D-fas.</p>
+        <span class="badge badge-blue">Pipeline</span>
+    </div>
+</div>
+
+<div class="section-title">XYMBIOTEC — OVRIGT</div>
+<div class="dash-grid">
+    <div class="dash-card green"><h3 class="green">Funding Landscape</h3>
+        <p>Alla 0 aktiva utlysningar i sheeten.</p>
+        <span class="badge badge-green">0 aktiva</span></div>
+    <div class="dash-card purple"><h3 class="purple">Konsultuppdrag</h3>
+        <p>Alla uppdrag fran scrapers.</p>
+        <span class="badge badge-purple">0 uppdrag</span></div>
+    <div class="dash-card"><h3>Events</h3>
+        <p>Konferenser, natverkstraffar, branschevent.</p>
+        <span class="badge badge-blue">4337 events</span></div>
+</div>
+
+<div class="section-title">PRIVAT</div>
+<div class="dash-grid">
+    <div class="dash-card" style="border-left-color:var(--cyan)">
+        <h3 style="color:var(--cyan)">HiFi</h3>
+        <p>Chassi, waveguide, CamillaDSP, REW-matningar.</p>
+        <span class="badge badge-blue">Dropbox/35. Hifi</span>
+    </div>
+    <div class="dash-card yellow">
+        <h3 class="yellow">DIY &amp; Bygg</h3>
+        <p>Fixhult garage, loungesoffa, byggprojekt.</p>
+        <span class="badge badge-yellow">Dropbox/48.DIY</span>
+    </div>
+    <div class="dash-card" style="border-left-color:#ff8a65">
+        <h3 style="color:#ff8a65">Social Media</h3>
+        <p>Profiler, juridikforum, webbsidor, artikelindex.</p>
+        <span class="badge badge-yellow">Dropbox/26. Social media</span>
+    </div>
+</div>
+
+<div class="section-title">KODNING</div>
+<div class="dash-grid">
+    <div class="dash-card green">
+        <h3 class="green">Agent-Team</h3>
+        <p>Daemon, 7 agenter, 15 scripts, Ollama, Sheets-synk.</p>
+        <span class="badge badge-green">Aktiv</span>
+    </div>
+    <div class="dash-card">
+        <h3>Scraping System</h3>
+        <p>Scrapers, CSV-styr, headless browser, moln-synk.</p>
+        <span class="badge badge-blue">14 scrapers</span>
+    </div>
+    <div class="dash-card purple">
+        <h3 class="purple">Laplacian (C++)</h3>
+        <p>404 kLOC, SLAM/perception-plattform. Vinnova-finansierad.</p>
+        <span class="badge badge-purple">Vinnova 2.3 MSEK</span>
+    </div>
+</div>
+
+<div class="section-title">DIARIUM — KOMPLETT</div>
+<div class="diarium-grid"><div class="diarium-card">
+        <span class="diarium-icon">&#128203;</span>
+        <span class="diarium-name">Arenden</span>
+        <span class="diarium-count">1 filer</span></div>
+<div class="diarium-card">
+        <span class="diarium-icon">&#128193;</span>
+        <span class="diarium-name">Befintliga</span>
+        <span class="diarium-count">5 filer</span></div>
+<div class="diarium-card">
+        <span class="diarium-icon">&#9200;</span>
+        <span class="diarium-name">Deadlines</span>
+        <span class="diarium-count">0 filer</span></div>
+<div class="diarium-card">
+        <span class="diarium-icon">&#9993;</span>
+        <span class="diarium-name">Mail</span>
+        <span class="diarium-count">3 filer</span></div>
+<div class="diarium-card">
+        <span class="diarium-icon">&#128196;</span>
+        <span class="diarium-name">Sheets</span>
+        <span class="diarium-count">0 filer</span></div>
+<div class="diarium-card">
+        <span class="diarium-icon">&#128188;</span>
+        <span class="diarium-name">Uppdrag</span>
+        <span class="diarium-count">2 filer</span></div>
+<div class="diarium-card">
+        <span class="diarium-icon">&#127963;</span>
+        <span class="diarium-name">Utlysningar</span>
+        <span class="diarium-count">2 filer</span></div></div>
+
+<div class="section-title">ALLA GOOGLE SHEETS</div>
+<div class="sheets-grid"><a href="https://docs.google.com/spreadsheets/d/14JY-LYIUIDAcfM-UShshk5CJUgLTsN15ZkTyXsV14eg" target="_blank" class="sheet-card">
+        <span class="sheet-dot" style="background:#ff4d4d"></span>
+        <span class="sheet-name">Case Manager</span>
+        <span class="sheet-count">0 rader | 23 flikar</span></a>
+<a href="https://docs.google.com/spreadsheets/d/1zhtsByoAo5-SBwU7hYsNCQoDzvTxyiqa-2fxnPg1Q98" target="_blank" class="sheet-card">
+        <span class="sheet-dot" style="background:#66bb6a"></span>
+        <span class="sheet-name">Utlysningar</span>
+        <span class="sheet-count">56 rader</span></a>
+<a href="https://docs.google.com/spreadsheets/d/1r70l7gqQD3uoWbmrbpISTd9l2FK3BOkjO-0kSjKuDJM" target="_blank" class="sheet-card">
+        <span class="sheet-dot" style="background:#4da6ff"></span>
+        <span class="sheet-name">Konsultuppdrag</span>
+        <span class="sheet-count">0 rader</span></a>
+<a href="https://docs.google.com/spreadsheets/d/1rtEpAsXcQeYj1S7PdyLSPQcnJUz6heQoc9mjR3XKQkA" target="_blank" class="sheet-card">
+        <span class="sheet-dot" style="background:#9b8cff"></span>
+        <span class="sheet-name">Pipeline</span>
+        <span class="sheet-count">607 rader</span></a>
+<a href="https://docs.google.com/spreadsheets/d/1Z2lsnC9x0JqA_MNnEqfmBvjmJfFDfqU2l-tOWH3_Ni8" target="_blank" class="sheet-card">
+        <span class="sheet-dot" style="background:#ffb74d"></span>
+        <span class="sheet-name">E-post</span>
+        <span class="sheet-count">0 rader</span></a>
+<a href="https://docs.google.com/spreadsheets/d/1gLQxM5SHPrV790OJA5L10dI1Mjp7ikdrbhrd6jfX32I" target="_blank" class="sheet-card">
+        <span class="sheet-dot" style="background:#4da6ff"></span>
+        <span class="sheet-name">Events</span>
+        <span class="sheet-count">4337 rader</span></a>
+<a href="https://docs.google.com/spreadsheets/d/1ne2J8pKCnCwfmTt8s_ml4kjPz37-UTjYdaTBXf7vCIM" target="_blank" class="sheet-card">
+        <span class="sheet-dot" style="background:#78909c"></span>
+        <span class="sheet-name">Kvitton</span>
+        <span class="sheet-count">334 rader</span></a>
+<a href="https://docs.google.com/spreadsheets/d/13RwfmsH3r39XFyoKJ1g_ObouL4aQxQnFitJzl4iLiu0" target="_blank" class="sheet-card">
+        <span class="sheet-dot" style="background:#66bb6a"></span>
+        <span class="sheet-name">Kompetensprofil</span>
+        <span class="sheet-count">9 rader</span></a>
+<a href="https://docs.google.com/spreadsheets/d/1SQZSWJbjsBrjsRrrLhi5WtQFsjRk1jLVi8P1rpFleTA" target="_blank" class="sheet-card">
+        <span class="sheet-dot" style="background:#ffb74d"></span>
+        <span class="sheet-name">Affarsplan</span>
+        <span class="sheet-count">10 rader</span></a>
+<a href="https://docs.google.com/spreadsheets/d/1GP0Nt8Sp8bXax9DqQ0zTOnqpcjfOoEexYigLPhNIIZI" target="_blank" class="sheet-card">
+        <span class="sheet-dot" style="background:#ff8a65"></span>
+        <span class="sheet-name">Marknadsforing</span>
+        <span class="sheet-count">9 rader</span></a>
+<a href="https://docs.google.com/spreadsheets/d/1nC7YG1q-mh1LqYL0hYx83NLohOz9ACvZL_ps7H_p0h4" target="_blank" class="sheet-card">
+        <span class="sheet-dot" style="background:#4da6ff"></span>
+        <span class="sheet-name">Planering</span>
+        <span class="sheet-count">27 rader</span></a></div>
+
+<div class="section-title">SYSTEMSTATISTIK</div>
+<div class="stats-bar">
+    <div class="stat"><div class="stat-num">15</div><div class="stat-label">Scripts</div></div>
+    <div class="stat"><div class="stat-num">7</div><div class="stat-label">Agenter</div></div>
+    <div class="stat"><div class="stat-num">11</div><div class="stat-label">Sheets</div></div>
+    <div class="stat"><div class="stat-num">6</div><div class="stat-label">Mailkonton</div></div>
+    <div class="stat"><div class="stat-num">3</div><div class="stat-label">Moln</div></div>
+</div>
+</div><!-- /main-content -->
+</body></html>
