@@ -52,49 +52,12 @@ h1 span { color:var(--accent); }
 .nav { text-align:center; margin-bottom:1rem; }
 .nav a { color:var(--accent); text-decoration:none; font-size:0.8rem; margin:0 1rem; }
 .nav a:hover { text-decoration:underline; }
-
-#login-wall { position:fixed;top:0;left:0;width:100%;height:100%;background:var(--bg);z-index:9999;display:flex;align-items:center;justify-content:center; }
-#login-wall form { background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:2rem;text-align:center; }
-#login-wall input { background:var(--bg);border:1px solid var(--border);color:var(--text);padding:0.6rem 1rem;border-radius:6px;font-size:1rem;margin:1rem 0;width:220px; }
-#login-wall button { background:var(--accent);color:#000;border:none;padding:0.6rem 2rem;border-radius:6px;font-size:1rem;cursor:pointer; }
 </style>
-<script>
-(function() {
-    var h = '29d0367482a26ef0acd0cb39abcc54c9e6eceffcb8a73cbbf77112a234c8afc1';
-    if (localStorage.getItem('xym_auth') === h) { return; }
-    document.addEventListener('DOMContentLoaded', function() {
-        var w = document.getElementById('login-wall');
-        if (!w) return;
-        w.style.display = 'flex';
-        document.getElementById('main-content').style.display = 'none';
-        document.getElementById('pw-form').addEventListener('submit', function(e) {
-            e.preventDefault();
-            var pw = document.getElementById('pw-input').value;
-            crypto.subtle.digest('SHA-256', new TextEncoder().encode(pw)).then(function(buf) {
-                var hex = Array.from(new Uint8Array(buf)).map(function(b) { return b.toString(16).padStart(2,'0'); }).join('');
-                if (hex === h) {
-                    localStorage.setItem('xym_auth', h);
-                    w.style.display = 'none';
-                    document.getElementById('main-content').style.display = 'block';
-                } else {
-                    document.getElementById('pw-error').textContent = 'Fel losenord';
-                }
-            });
-        });
-    });
-})();
-</script>
 </head><body>
-<div id="login-wall">
-<form id="pw-form"><h2 style="color:var(--accent);margin-bottom:0.5rem">Intern Dashboard</h2>
-<p style="color:var(--text-dim);font-size:0.85rem">Losenordsskyddad</p>
-<input type="password" id="pw-input" placeholder="Losenord" autofocus>
-<p id="pw-error" style="color:var(--red);font-size:0.8rem;min-height:1.2rem"></p>
-<button type="submit">Logga in</button></form></div>
-<div id="main-content">
+<div>
 <h1>XYMBIOTEC &mdash; <span>Intern Kontrollpanel</span></h1>
 <div class="subtitle">SLAM &nbsp;|&nbsp; PERCEPTION &nbsp;|&nbsp; AUTONOMI &nbsp;|&nbsp; LAPLACIAN PLATFORM</div>
-<div class="updated">Uppdaterad: 2026-04-07 16:09 &mdash; INTERN (ej for kollegor)</div>
+<div class="updated">Uppdaterad: 2026-04-07 16:13 &mdash; INTERN (ej for kollegor)</div>
 <div class="nav"><a href="dashboard.html">Publik dashboard</a></div>
 
 <div class="stats-bar">
