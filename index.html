@@ -78,24 +78,107 @@ h1 span { color:var(--accent); }
                     w.style.display = 'none';
                     document.getElementById('main-content').style.display = 'block';
                 } else {
-                    document.getElementById('pw-error').textContent = 'Fel losenord';
+                    document.getElementById('pw-error').textContent = 'Fel lösenord';
                 }
             });
         });
     });
 })();
+
+// Live-data-uppdatering fran data.json (genererad av pipeline_status_export.py)
+// Failar tyst om data.json saknas — static text i HTML ar fallback
+window.addEventListener('load', function() {
+    fetch('data.json?t=' + Date.now())
+        .then(function(r) { return r.ok ? r.json() : null; })
+        .then(function(d) {
+            if (!d) return;
+            var p = d.pipeline || {};
+            function set(id, val) { var el = document.getElementById(id); if (el) el.textContent = val; }
+            if (d.generated_at) set('ps-generated', 'Genererat ' + d.generated_at.replace('T', ' ').slice(0, 16));
+            if (p.blomqvist_main_ocr_done) {
+                set('ps-ocr-stat', p.blomqvist_main_ocr_done.toLocaleString('sv-SE') + ' av ' + p.blomqvist_main_ocr_total.toLocaleString('sv-SE') + ' PDFer');
+                set('ps-ocr-pct', '(' + p.blomqvist_main_ocr_percent + '%)');
+                set('ps-ocr-badge', p.blomqvist_main_ocr_percent + '% klart');
+            }
+            if (p.blomqvist_watcher_total > 0) {
+                set('ps-watcher-stat', p.blomqvist_watcher_done + '/' + p.blomqvist_watcher_total + ' (' + p.blomqvist_watcher_percent + '%)');
+            }
+            if (p.resning_arenden_konsoliderade) set('ps-resning-count', p.resning_arenden_konsoliderade);
+            if (p.resning_p0_blockers !== undefined) {
+                set('ps-p0-count', p.resning_p0_blockers);
+                set('ps-p0-badge', p.resning_p0_blockers);
+            }
+            if (p.officials_personer !== undefined) {
+                set('ps-pers', p.officials_personer);
+                set('ps-pers-badge', p.officials_personer);
+            }
+            if (p.officials_mejl !== undefined) {
+                set('ps-mejl', p.officials_mejl);
+                set('ps-mejl-badge', p.officials_mejl);
+            }
+
+            // Sokbarhet / Datashare
+            var ds = d.datashare || {};
+            if (ds.last_check) set('ds-generated', 'Kollat ' + ds.last_check.replace('T',' ').slice(0,16));
+            if (ds.es_count !== undefined) set('ds-count', ds.es_count.toLocaleString('sv-SE'));
+            var dsStatusEl = document.getElementById('ds-status');
+            if (dsStatusEl) {
+                dsStatusEl.textContent = ds.available ? 'UPPE' : 'OFFLINE';
+                dsStatusEl.className = 'badge ' + (ds.available ? 'badge-green' : 'badge-red');
+            }
+            var dirsTbody = document.querySelector('#ds-dirs tbody');
+            if (dirsTbody && ds.top_dirs) {
+                dirsTbody.innerHTML = '';
+                var maxCount = ds.top_dirs.reduce(function(m,r){return Math.max(m,r.count);},0) || 1;
+                ds.top_dirs.forEach(function(r) {
+                    var tr = document.createElement('tr');
+                    var pathShort = r.path.replace('/home/datashare/data/','').replace('/home/datashare','').replace('/home','') || '(root)';
+                    var pct = Math.round(100 * r.count / maxCount);
+                    tr.innerHTML = '<td style="padding:0.25rem 0.6rem;color:var(--text)">' + pathShort +
+                        '</td><td style="padding:0.25rem 0.6rem;text-align:right;color:var(--accent);width:80px">' + r.count.toLocaleString('sv-SE') +
+                        '</td><td style="padding:0.25rem 0.6rem;width:40%"><div style="background:var(--bg);height:6px;border-radius:3px;overflow:hidden"><div style="background:var(--accent);height:100%;width:' + pct + '%"></div></div></td>';
+                    dirsTbody.appendChild(tr);
+                });
+            }
+
+            // Case-lage
+            var c = d.cases || {};
+            if (c.total !== undefined) set('cases-total', c.total);
+            var bs = c.by_status || {};
+            set('cases-open', bs.OPEN || 0);
+            set('cases-waiting', bs.WAITING || 0);
+            set('cases-draft', bs.DRAFT || 0);
+            set('cases-submitted', bs.SUBMITTED || 0);
+            var casesBody = document.querySelector('#cases-table tbody');
+            if (casesBody && c.cases) {
+                casesBody.innerHTML = '';
+                var statusColor = {OPEN:'green', WAITING:'yellow', DRAFT:'purple', SUBMITTED:'red', CLOSED:'blue'};
+                c.cases.forEach(function(cc) {
+                    var color = statusColor[cc.status] || 'blue';
+                    var tr = document.createElement('tr');
+                    tr.style.borderBottom = '1px solid var(--border)';
+                    tr.innerHTML = '<td style="padding:0.35rem 0.6rem;color:var(--text-dim);font-size:0.75rem">' + cc.area +
+                        '</td><td style="padding:0.35rem 0.6rem">' + cc.case_id +
+                        '</td><td style="padding:0.35rem 0.6rem"><span class="badge badge-' + color + '">' + cc.status + '</span>' +
+                        '</td><td style="padding:0.35rem 0.6rem;color:var(--text-dim);font-size:0.78rem">' + (cc.deadline_next || '—') + '</td>';
+                    casesBody.appendChild(tr);
+                });
+            }
+        })
+        .catch(function() { /* tyst — static fallback i HTML */ });
+});
 </script>
 </head><body>
 <div id="login-wall">
 <form id="pw-form"><h2 style="color:var(--accent);margin-bottom:0.5rem">Intern Dashboard</h2>
-<p style="color:var(--text-dim);font-size:0.85rem">Losenordsskyddad</p>
-<input type="password" id="pw-input" placeholder="Losenord" autofocus>
+<p style="color:var(--text-dim);font-size:0.85rem">Lösenordsskyddad</p>
+<input type="password" id="pw-input" placeholder="Lösenord" autofocus>
 <p id="pw-error" style="color:var(--red);font-size:0.8rem;min-height:1.2rem"></p>
 <button type="submit">Logga in</button></form></div>
 <div id="main-content">
 <h1>XYMBIOTEC &mdash; <span>Intern Kontrollpanel</span></h1>
 <div class="subtitle">SLAM &nbsp;|&nbsp; PERCEPTION &nbsp;|&nbsp; AUTONOMI &nbsp;|&nbsp; LAPLACIAN PLATFORM</div>
-<div class="updated">Uppdaterad: 2026-04-22 &mdash; INTERN (ej för kollegor) &mdash; 4 nya utlysningar (DIANA 5/5, FMV UGV, A1 Ukraine, Drone Hackathon)</div>
+<div class="updated">Uppdaterad: 2026-05-10 &mdash; INTERN (ej för kollegor) &mdash; Sökbar-historik-pipeline klar (16 555 PDFer OCR'ade) + RESNING_MASTER (15 ärenden, 75+ Gmail-trådar) + Officials auto-extrakt</div>
 <div class="nav"><a href="dashboard.html">Publik dashboard</a></div>
 
 <div class="stats-bar">
@@ -107,7 +190,79 @@ h1 span { color:var(--accent); }
     <div class="stat"><div class="stat-num">11</div><div class="stat-label">Sheets</div></div>
 </div>
 
-<div class="section-title">JURIDIK &amp; RATTSARBETE</div>
+<div class="section-title">PIPELINE-STATUS <span id="ps-generated" style="font-weight:400;color:var(--text-dim);font-size:0.75rem">2026-05-10</span></div>
+<div class="dash-grid">
+    <div class="dash-card green">
+        <h3 class="green">Sökbar historik — KLAR</h3>
+        <p>OCR-batch klar 2026-05-07: <strong id="ps-ocr-stat">16 546 av 16 555 PDFer</strong> <span id="ps-ocr-pct">(99.95%)</span> processade. Alla har <code>_transkription.txt</code> bredvid. Datashare-sökning aktiv på <code>blomqvist:8081</code>. Watcher körs för nya scans: <span id="ps-watcher-stat">—</span>.</p>
+        <span class="badge badge-green" id="ps-ocr-badge">99.95% klart</span>
+    </div>
+    <div class="dash-card purple">
+        <h3 class="purple">RESNING-master — <span id="ps-resning-count">15</span> ärenden konsoliderade</h3>
+        <p>2026-05-09: per-ärende sammanställning av Gmail-trådar + transkriptioner + officials. <strong>75+ unika trådar</strong> aggregerade. <span id="ps-p0-count">3</span> P0-blockers identifierade (HovR B 4111-22-domen, TR B 14325-21-domen, KV-PLAC-08990-23 originalbeslut).</p>
+        <span class="badge badge-purple">RESNING_MASTER_2026-05-09.md</span>
+        <span class="badge badge-red"><span id="ps-p0-badge">3</span> P0-luckor</span>
+    </div>
+    <div class="dash-card">
+        <h3>Officials auto-extrakt</h3>
+        <p><span id="ps-pers">14</span> unika tjänstepersoner + <span id="ps-mejl">46</span> mejladresser från 243 transkriptioner via regex. Topp: Håkan Larsson (kammaråklagare, 18 förekomster), Joakim Rosenberg (KV, 8), Tova Wallemyr (KVI, 8).</p>
+        <span class="badge badge-blue"><span id="ps-pers-badge">14</span> personer</span>
+        <span class="badge badge-blue"><span id="ps-mejl-badge">46</span> mejl</span>
+    </div>
+    <div class="dash-card yellow">
+        <h3 class="yellow">Juridik-PDF-pipeline</h3>
+        <p><code>juridik_pdf_pipeline.py</code> — 5 flags (discover/ocr/route/draft/officials/aggregate). Lokal Windows-körning, oberoende av blomqvist musik-läge.</p>
+        <span class="badge badge-yellow">MVP klar</span>
+    </div>
+    <div class="dash-card">
+        <h3>Draft-monitor (Gmail)</h3>
+        <p>Skannar 5 Gmail-konton var sessionsstart för <code>[MARCUS-NOTERING]</code>-prefix i drafts. 399 drafts genomsökta, 0 noteringar än (prefix-konvention är ny).</p>
+        <span class="badge badge-blue">5 konton</span>
+    </div>
+    <div class="dash-card cyan" style="border-left-color:var(--cyan)">
+        <h3 style="color:var(--cyan)">Audio self-healing (blomqvist)</h3>
+        <p><code>audio-health.timer</code> kör var 5:e min — restartar tidal-hifi/camilladsp-motu vid fail + säkerställer default-sink. Wifi-keepalive var minut.</p>
+        <span class="badge badge-blue">Var 5 min</span>
+    </div>
+</div>
+
+<div class="section-title">SÖKBARHET (DATASHARE) <span id="ds-generated" style="font-weight:400;color:var(--text-dim);font-size:0.75rem"></span></div>
+<div class="dash-grid">
+    <div class="dash-card green">
+        <h3 class="green">Datashare ES-index</h3>
+        <p>Sökbart material i <code>local-datashare</code>: <strong id="ds-count">—</strong> dokument. API: <code>blomqvist:8081</code>.</p>
+        <span class="badge badge-green" id="ds-status">—</span>
+    </div>
+    <div class="dash-card" style="grid-column:span 2">
+        <h3>Topp-10 mappar i indexet</h3>
+        <table id="ds-dirs" style="width:100%;font-size:0.8rem;color:var(--text-dim);border-collapse:collapse"><tbody></tbody></table>
+    </div>
+</div>
+
+<div class="section-title">CASE-LÄGE (DIARIUM)</div>
+<div class="mail-grid">
+    <div class="mail-stat"><div class="num" id="cases-total">—</div><div class="label">Totalt</div></div>
+    <div class="mail-stat"><div class="num green" id="cases-open">—</div><div class="label">Open</div></div>
+    <div class="mail-stat"><div class="num yellow" id="cases-waiting">—</div><div class="label">Waiting</div></div>
+    <div class="mail-stat"><div class="num purple" id="cases-draft">—</div><div class="label">Draft</div></div>
+    <div class="mail-stat"><div class="num red" id="cases-submitted">—</div><div class="label">Submitted</div></div>
+</div>
+<div class="dash-grid">
+    <div class="dash-card" style="grid-column:span 3">
+        <h3>Alla case-bundles</h3>
+        <table id="cases-table" style="width:100%;font-size:0.8rem;border-collapse:collapse">
+            <thead><tr style="text-align:left;color:var(--text-dim);border-bottom:1px solid var(--border)">
+                <th style="padding:0.4rem 0.6rem">Område</th>
+                <th style="padding:0.4rem 0.6rem">Case-ID</th>
+                <th style="padding:0.4rem 0.6rem">Status</th>
+                <th style="padding:0.4rem 0.6rem">Nästa deadline</th>
+            </tr></thead>
+            <tbody></tbody>
+        </table>
+    </div>
+</div>
+
+<div class="section-title">JURIDIK &amp; RÄTTSARBETE</div>
 <div class="dash-grid">
     <div class="dash-card red">
         <h3 class="red">Resning B4111-22</h3>
@@ -324,7 +479,7 @@ h1 span { color:var(--accent); }
     <a href="https://drive.google.com/drive/folders/1URJqvug5bgmC8VkKG_erctk_JKJsuinr" target="_blank" class="sheet-card">
         <span class="sheet-dot" style="background:var(--red)"></span>
         <span class="sheet-name">Christian Hedman</span>
-        <span class="sheet-count">KV tjanstefel</span></a>
+        <span class="sheet-count">KV tjänstefel</span></a>
     <a href="https://drive.google.com/drive/folders/1zRYtHI1nK9WIFWmKdxyPqT3KRO_JsUDm" target="_blank" class="sheet-card">
         <span class="sheet-dot" style="background:var(--red)"></span>
         <span class="sheet-name">Claver Berinkindi</span>
@@ -340,14 +495,14 @@ h1 span { color:var(--accent); }
     <a href="https://drive.google.com/drive/folders/1wANoR93s-YLxyAzV6XT4lm7G2e6-_zGW" target="_blank" class="sheet-card">
         <span class="sheet-dot" style="background:var(--green)"></span>
         <span class="sheet-name">JO beslut</span>
-        <span class="sheet-count">Anmalningar</span></a>
+        <span class="sheet-count">Anmälningar</span></a>
 </div>
 
 <div class="section-title">PRIVATA MAPPAR &mdash; GOOGLE DRIVE</div>
 <div class="sheets-grid">
     <a href="https://drive.google.com/drive/folders/1yY-MyI02Czh2_SdfEgRoGDhUoPBF2Pu8" target="_blank" class="sheet-card">
         <span class="sheet-dot" style="background:var(--red)"></span>
-        <span class="sheet-name">02. Kriminalvarden</span>
+        <span class="sheet-name">02. Kriminalvården</span>
         <span class="sheet-count">KV alla handlingar</span></a>
     <a href="https://drive.google.com/drive/folders/12SmIKssCpMw_UXjl3zJs1kkWIz3B8m6d" target="_blank" class="sheet-card">
         <span class="sheet-dot" style="background:var(--red)"></span>
@@ -356,7 +511,7 @@ h1 span { color:var(--accent); }
     <a href="https://drive.google.com/drive/folders/1IT8k453cvt_nlDPlEqb9AkxS1hmfKe_q" target="_blank" class="sheet-card">
         <span class="sheet-dot" style="background:var(--accent)"></span>
         <span class="sheet-name">01. Polismyndigheten</span>
-        <span class="sheet-count">Polisarenden</span></a>
+        <span class="sheet-count">Polisärenden</span></a>
     <a href="https://drive.google.com/drive/folders/1W6mw6g5JW0_8GhuKjeBl1Zod75A16Ypu" target="_blank" class="sheet-card">
         <span class="sheet-dot" style="background:var(--yellow)"></span>
         <span class="sheet-name">33. ECHR</span>
@@ -398,16 +553,16 @@ h1 span { color:var(--accent); }
     <div class="dash-card red">
         <h3 class="red">Saab Dynamics</h3>
         <p>SLAM for loitering munitions. 2.6 mdr C-UAS-kontrakt.</p>
-        <span class="badge badge-red">Forsvar</span> <span class="badge badge-green">Match 88%</span>
+        <span class="badge badge-red">Försvar</span> <span class="badge badge-green">Match 88%</span>
     </div>
     <div class="dash-card red">
         <h3 class="red">Saab Kockums</h3>
         <p>Undervattens-SLAM, AUV-navigation, sensorfusion.</p>
-        <span class="badge badge-red">Forsvar</span> <span class="badge badge-green">Match 88%</span>
+        <span class="badge badge-red">Försvar</span> <span class="badge badge-green">Match 88%</span>
     </div>
     <div class="dash-card">
         <h3>Kollmorgen NDC</h3>
-        <p>SLAM + sensorfusion for AGV/lagerrobotar. Goteborg.</p>
+        <p>SLAM + sensorfusion för AGV/lagerrobotar. Göteborg.</p>
         <span class="badge badge-green">Match 95%</span>
     </div>
 </div>
@@ -415,7 +570,7 @@ h1 span { color:var(--accent); }
 <div class="section-title">UTLYSNINGAR — AKTUELLA</div>
 <div class="dash-grid">
     <div class="dash-card green">
-        <h3 class="green">Vinnova Tillampad AI</h3>
+        <h3 class="green">Vinnova Tillämpad AI</h3>
         <p>290 MSEK program. Autonoma system explicit. Ny chans efter ORCHESTRA.</p>
         <span class="badge badge-red">Deadline 24 apr</span>
     </div>
@@ -425,25 +580,25 @@ h1 span { color:var(--accent); }
         <span class="badge badge-yellow">Deadline 29 sep</span>
     </div>
     <div class="dash-card purple">
-        <h3 class="purple">EDIP — EU Forsvar</h3>
-        <p>EUR 232M for obemannade system + AI/autonomi. Just oppnad.</p>
-        <span class="badge badge-yellow">Lopande 2026-27</span>
+        <h3 class="purple">EDIP — EU Försvar</h3>
+        <p>EUR 232M för obemannade system + AI/autonomi. Just öppnad.</p>
+        <span class="badge badge-yellow">Löpande 2026-27</span>
     </div>
 </div>
 <div class="dash-grid">
     <div class="dash-card">
         <h3>ESA NAVISP Dronlokalisering</h3>
-        <p>Akustik + navigation for dronare. Lag troskel for SME.</p>
+        <p>Akustik + navigation för drönare. Låg tröskel för SME.</p>
         <span class="badge badge-yellow">April 2026</span>
     </div>
     <div class="dash-card">
-        <h3>FMV — Saab underleverantor</h3>
+        <h3>FMV — Saab underleverantör</h3>
         <p>4 mdr SEK obemannade system. Inga oppna upphandlingar — subcontracting.</p>
         <span class="badge badge-blue">Bevaka</span>
     </div>
     <div class="dash-card">
         <h3>Trafikverket UNICA</h3>
-        <p>Autonom inspektion av infrastruktur med dronare. R&amp;D-fas.</p>
+        <p>Autonom inspektion av infrastruktur med drönare. R&amp;D-fas.</p>
         <span class="badge badge-blue">Pipeline</span>
     </div>
 </div>
@@ -454,9 +609,9 @@ h1 span { color:var(--accent); }
         <span class="badge badge-red">Deadline 5 maj!</span>
         <span class="badge badge-yellow">Ny 22 apr</span></a>
     <a href="https://www.fmv.se/foretag-och-samarbete/innovation-och-finansiering/innovationspris-och-forkommersiella-upphandlingar/innovationsfinansiering-forkommersiell-upphandling-sma-obemannade-markfarkoster/" target="_blank" class="dash-card red" style="text-decoration:none;color:var(--text)">
-        <h3 class="red">FMV — Forkommersiell sma UGV</h3>
-        <p>Modular dual-use UGV-ekosystem. 18-slide Full_Presentation klar. Vantar kravtext.</p>
-        <span class="badge badge-red">Forsvar</span>
+        <h3 class="red">FMV — Förkommersiell små UGV</h3>
+        <p>Modular dual-use UGV-ekosystem. 18-slide Full_Presentation klar. Väntar kravtext.</p>
+        <span class="badge badge-red">Försvar</span>
         <span class="badge badge-yellow">Ny 22 apr</span></a>
     <a href="https://a1.mod.gov.ua/en" target="_blank" class="dash-card" style="text-decoration:none;color:var(--text)">
         <h3>Ukraine A1 — Defense AI Center</h3>
@@ -470,7 +625,7 @@ h1 span { color:var(--accent); }
         <span class="badge badge-yellow">Ny 22 apr</span></a>
 </div>
 
-<div class="section-title">XYMBIOTEC — OVRIGT</div>
+<div class="section-title">XYMBIOTEC — ÖVRIGT</div>
 <div class="dash-grid">
     <div class="dash-card green"><h3 class="green">Funding Landscape</h3>
         <p>Alla 0 aktiva utlysningar i sheeten.</p>
@@ -479,7 +634,7 @@ h1 span { color:var(--accent); }
         <p>Alla uppdrag fran scrapers.</p>
         <span class="badge badge-purple">0 uppdrag</span></div>
     <div class="dash-card"><h3>Events</h3>
-        <p>Konferenser, natverkstraffar, branschevent.</p>
+        <p>Konferenser, nätverksträffar, branschevent.</p>
         <span class="badge badge-blue">4337 events</span></div>
 </div>
 
@@ -589,7 +744,7 @@ h1 span { color:var(--accent); }
 <div class="section-title">DIARIUM — KOMPLETT</div>
 <div class="diarium-grid"><div class="diarium-card">
         <span class="diarium-icon">&#128203;</span>
-        <span class="diarium-name">Arenden</span>
+        <span class="diarium-name">Ärenden</span>
         <span class="diarium-count">1 filer</span></div>
 <div class="diarium-card">
         <span class="diarium-icon">&#128193;</span>
@@ -651,11 +806,11 @@ h1 span { color:var(--accent); }
         <span class="sheet-count">9 rader</span></a>
 <a href="https://docs.google.com/spreadsheets/d/1SQZSWJbjsBrjsRrrLhi5WtQFsjRk1jLVi8P1rpFleTA" target="_blank" class="sheet-card">
         <span class="sheet-dot" style="background:#ffb74d"></span>
-        <span class="sheet-name">Affarsplan</span>
+        <span class="sheet-name">Affärsplan</span>
         <span class="sheet-count">10 rader</span></a>
 <a href="https://docs.google.com/spreadsheets/d/1GP0Nt8Sp8bXax9DqQ0zTOnqpcjfOoEexYigLPhNIIZI" target="_blank" class="sheet-card">
         <span class="sheet-dot" style="background:#ff8a65"></span>
-        <span class="sheet-name">Marknadsforing</span>
+        <span class="sheet-name">Marknadsföring</span>
         <span class="sheet-count">9 rader</span></a>
 <a href="https://docs.google.com/spreadsheets/d/1nC7YG1q-mh1LqYL0hYx83NLohOz9ACvZL_ps7H_p0h4" target="_blank" class="sheet-card">
         <span class="sheet-dot" style="background:#4da6ff"></span>
